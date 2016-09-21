@@ -1,5 +1,5 @@
 # coffeelint: disable = missing_fat_arrows
-term = require 'term-launcher'
+# term = require 'term-launcher'
 path = require 'path'
 {CompositeDisposable, Disposable} = require 'atom'
 
@@ -10,7 +10,7 @@ module.exports = HydrogenLauncher =
             title: 'Terminal application'
             description: 'This will depend on your operation system.'
             type: 'string'
-            default: term.getDefaultTerminal()
+            default: "test" #term.getDefaultTerminal()
         console:
             title: 'Jupyter console'
             description: 'Change this if you want to start a `qtconsole` or any
@@ -31,14 +31,19 @@ module.exports = HydrogenLauncher =
             'hydrogen-launcher:copy-path-to-connection-file': =>
                 @copyPathToConnectionFile()
 
+        unless @hydrogenProvider
+            @hydrogenProvider = null
+
     deactivate: ->
         @subscriptions.dispose()
 
     consumeHydrogen: (provider) ->
-        @setConnectionFile provider.connectionFile
-        new Disposable => @setConnectionFile null
+        @hydrogenProvider = provider
+        new Disposable =>
+            @hydrogenProvider = null
 
     launchTerminal: ->
+        return
         term.launchTerminal '', @getCWD(), @getTerminal(), (err) ->
             if err
                 atom.notifications.addError err.message
@@ -48,6 +53,8 @@ module.exports = HydrogenLauncher =
         unless connectionFile
             return
         jpConsole = atom.config.get 'hydrogen-launcher.console'
+        console.log(connectionFile)
+        return
         term.launchJupyter connectionFile, @getCWD(), jpConsole, @getTerminal(),
             (err) ->
                 if err
@@ -68,10 +75,10 @@ module.exports = HydrogenLauncher =
         @connectionFile = file
 
     getConnectionFile: ->
-        unless @connectionFile
-            atom.notifications.addError 'Hydrogen `v0.15.0+` has to be running.'
+        unless @hydrogenProvider
+            atom.notifications.addError 'Wrong hydrogen API'
             return
-        return @connectionFile()
+        return @hydrogenProvider.getActiveKernel().getConnectionFile()
 
     getTerminal: ->
         return atom.config.get 'hydrogen-launcher.app'
